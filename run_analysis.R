@@ -34,8 +34,6 @@ for (datasetName in c('train','test')) {
 		)
 	)
 	
-	activitiesLabeled <- sapply(activityList$V1, function(x) activityLabels[[x]])
-	
 	measurements <- read.table(
 		paste(
 			datasetBasePath, "/", datasetName, "/X_", datasetName, ".txt", 
@@ -43,14 +41,23 @@ for (datasetName in c('train','test')) {
 		)
 	)
 	mergedData <- rbind(mergedData, cbind(
-		subjectList, activityList, activitiesLabeled,
+		subjectList, activityList,
 		measurements[,featuresToKeep$V1]
 	))
 }
 
 # set the column names
 colnames(mergedData) <- 
-	c('Subject', 'Activity', 'ActivityName', as.vector(featuresToKeep$V2))
+	c('Subject', 'Activity', as.vector(featuresToKeep$V2))
 
-#split along Subject/Activity
-splitData <- split(mergedData, list(mergedData$Subject, mergedData$Activity))
+
+#get the means of all features
+tidyData <- aggregate(mergedData, list(mergedData$Subject, mergedData$Activity), mean)
+
+#add activity labels
+activitiesLabeled <- sapply(tidyData$Activity, function(x) activityLabels[[x]])
+tidyData <- cbind(tidyData[,c(3,4)], activitiesLabeled, tidyData[,c(c(5:ncol(tidyData)))])
+colnames(tidyData)[3] <- "ActivityName"
+
+#output file
+write.table(tidyData, "tidy_data.txt")
